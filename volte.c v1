@@ -1,0 +1,86 @@
+// volte.c
+#include "common.h"
+#include <pthread.h>
+
+volatile int terminate_flag = 0;
+
+void *handle_volte(void *arg) {
+   int socket = *(int *)arg;
+    //free(arg);
+
+    char buffer[BUFFER_SIZE];
+   // char source_ip[16], dest_ip[16], call_type[16];
+    //int source_port, dest_port, max_call;
+    
+    int valread = read(socket, buffer, 1024);
+    printf("contect of buffer:%s",buffer );
+    if (valread < 0) {
+        perror("read");
+        close(socket);
+        return NULL;
+    }
+    int bytesRead;
+    int proc_id;
+
+    printf("Client connected.\n");
+
+    while ((bytesRead = read(socket, &buffer, sizeof(buffer) - 1)) > 0) {
+        buffer[bytesRead] = '\0';
+        printf("Received: %s\n", buffer);
+
+        if (strncmp(buffer, "terminate:", 10) == 0) {
+            int toggleValue = atoi(buffer + 10);
+            terminate_flag = toggleValue;
+            printf("Terminate flag set to %d.\n", terminate_flag);
+
+           if (terminate_flag == 1) {
+                printf("Termination command received. Exiting process.\n");
+               proc_id = fetch_pid(pid_buffer);  
+
+                char kill_command[BUFFER_SIZE];
+                sprintf(kill_command, "kill -9 %d", proc_id);
+                printf("Executing command: %s\n", kill_command);
+                system(kill_command);
+            }
+            continue;
+        }
+
+        char source_ip[INET_ADDRSTRLEN], dest_ip[INET_ADDRSTRLEN];
+        int source_port, dest_port;
+        int max_call;
+        char call_type[16];
+
+        sscanf(buffer, "Action:Update;source_ip:%15[^;];source_port:%d;dest_ip:%15[^;];dest_port:%d;max_call:%d;call_type:%15[^;]",
+               source_ip, &source_port, dest_ip, &dest_port, &max_call, call_type);
+
+        char srcip[BUFFER_SIZE];
+        snprintf(srcip, BUFFER_SIZE, "%s:%d", source_ip, source_port);
+        char destip[BUFFER_SIZE];
+        snprintf(destip, BUFFER_SIZE, "%s:%d", dest_ip, dest_port);
+        printf("Stored: source data: %s\n", srcip);
+        printf("Stored: destination data: %s\n", destip);
+        printf("Stored: max_call: %d\n", max_call);
+
+        const char *response = "Data received";
+        write(socket, response, strlen(response));
+
+        const char *path = "./VPHP_LOADGEN /101/VPHP_LOAD/SOCKET_SENDER/dump_at/";
+        char run_script[BUFFER_SIZE];
+        snprintf(run_script, BUFFER_SIZE, "%s %s %d %d", path, source_ip, max_call, 2);
+
+        printf("The given Script is: %s\n", run_script);
+
+        printf("Executing command: %s\n", run_script);
+        system(run_script);
+
+        if (terminate_flag == 1) {
+            printf("Termination flag set. Exiting process.\n");
+        }
+    }
+
+    printf("Client disconnected.\n");
+   // close(socket);
+    close(socket);
+    free(arg);
+    return NULL;
+}
