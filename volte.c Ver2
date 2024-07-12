@@ -1,0 +1,52 @@
+#include "common.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+void *handle_volte(void *arg, char *buffer) {
+    int socket = *(int *)arg;
+     // Free the allocated memory for the argument
+
+    int bytesRead;
+
+    printf("Client connected.\n");
+
+    // Initial buffer processing
+    printf("Received: in volte file  %s\n", buffer);
+    
+
+    // Extracting data from the buffer sent by main.c
+    char source_ip[INET_ADDRSTRLEN], dest_ip[INET_ADDRSTRLEN];
+    int source_port, dest_port, max_call;
+
+    // Assuming the buffer format is: numericValue,sourceIp:sourcePort;destIp:destPort;maxCall
+    char *data = strchr(buffer, ',') + 1; // Skip the numericValue part
+    sscanf(data, "%[^:]:%d;%[^:]:%d;%d", source_ip, &source_port, dest_ip, &dest_port, &max_call);
+    printf("this is data variable in volte file%s\n", data);
+
+    char srcip[BUFFER_SIZE];
+    snprintf(srcip, BUFFER_SIZE, "%s:%d", source_ip, source_port);
+    char destip[BUFFER_SIZE];
+    snprintf(destip, BUFFER_SIZE, "%s:%d", dest_ip, dest_port);
+    printf("Stored: source data: %s\n", srcip);
+    printf("Stored: destination data: %s\n", destip);
+    printf("Stored: max_call: %d\n", max_call);
+    const char *response = "Data received";
+    write(socket, response, strlen(response));
+
+    const char *path = "./VPHP_LOADGEN /101/VPHP_LOAD/SOCKET_SENDER/dump_at/";
+    char run_script[BUFFER_SIZE];
+    snprintf(run_script, BUFFER_SIZE, "%s %s %d %d", path, source_ip, max_call, 2);
+
+    printf("The given Script is: %s\n", run_script);
+
+    printf("Executing command: %s\n", run_script);
+    system(run_script);
+
+    
+
+    printf("Client disconnected.\n");
+    close(socket);
+    
+}
