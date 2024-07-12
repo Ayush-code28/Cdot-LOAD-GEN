@@ -1,0 +1,73 @@
+#include "common.h"
+#include <pthread.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <stdlib.h>
+
+void *handle_connection(void *socket_ptr);
+
+int main() {
+    int server_fd;
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
+
+    server_fd = setup_socket();
+    if (server_fd < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Server listening on port %d\n", PORT);
+
+    while (1) {
+        int *new_socket = malloc(sizeof(int));
+        if ((*new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
+            perror("accept");
+            free(new_socket);
+            continue;
+        }
+
+        pthread_t thread_id;
+        pthread_create(&thread_id, NULL, handle_connection, new_socket);
+        pthread_detach(thread_id);
+    }
+
+    close(server_fd);
+    return 0;
+}
+
+void *handle_connection(void *socket_ptr) {
+    int new_socket = *((int *)socket_ptr);
+    free(socket_ptr);
+
+    char buffer[1024] = {0};
+    read(new_socket, buffer, 1024);
+    printf("this is buffer sent by gui %s\n", buffer);  // Use format string to safely print buffer
+
+    char *buffer_copy = malloc(strlen(buffer) + 1);
+    strcpy(buffer_copy, buffer);
+    printf("this is buffer copy%s\n", buffer_copy);
+
+    // Parse the incoming data
+    char *token;
+    token = strtok(buffer, ",");
+
+    int call_type = atoi(token);  // Get the call type numeric value
+
+    // Allocate memory for buffer and copy data
+   
+
+    switch (call_type) {
+        case 1:
+            handle_volte(&new_socket, buffer_copy);  // Pass socket and buffer
+            break;
+        case 2:
+            handle_sipp(&new_socket, buffer_copy);  // Implement handle_sipp accordingly
+            break;
+        default:
+            printf("Invalid call type\n");
+            free(buffer_copy);
+    }
+
+    close(new_socket);
+    return NULL;
+}
