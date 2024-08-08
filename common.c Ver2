@@ -159,4 +159,3 @@ set_env_variables("DB_NAME","ISFDB");
 set_env_variables("DB_USER_NAME","cmsdb");
 set_env_variables("DB_PASSWD","d315b197a38456342699c21219f000dctislbpi8.ccsrm.lab.in");
 }
-~
