@@ -1,8 +1,10 @@
+
 #include "common.h"
 #include <pthread.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>
 
 void *handle_connection(void *socket_ptr);
 
@@ -35,37 +37,81 @@ int main() {
     return 0;
 }
 
+void terminate_processes() {
+    char *process_names[] = {"VPHP_LOADGEN", "SIPP_LOADGEN","RawIriFtp_SIPP.sh","APDH_LOADGEN"};
+    int num_processes = sizeof(process_names) / sizeof(process_names[0]);
+    int i;
+    for ( i = 0; i < num_processes; i++) {
+        int pid = fetch_pid(process_names[i]);
+        if (pid != -1) {
+            if (kill(pid, SIGTERM) == 0) {
+                printf("Terminated process %s with PID %d\n", process_names[i], pid);
+            } else {
+                perror("Failed to terminate process");
+            }
+        } else {
+            printf("Process %s not found\n", process_names[i]);
+        }
+    }
+}
+
 void *handle_connection(void *socket_ptr) {
     int new_socket = *((int *)socket_ptr);
     free(socket_ptr);
 
     char buffer[1024] = {0};
     read(new_socket, buffer, 1024);
-    printf("this is buffer sent by gui %s\n", buffer);  // Use format string to safely print buffer
+  printf("Received buffer from GUI: %s\n", buffer);  // Use format string to safely print buffer
 
     char *buffer_copy = malloc(strlen(buffer) + 1);
     strcpy(buffer_copy, buffer);
-    printf("this is buffer copy%s\n", buffer_copy);
+    printf("Buffer copy: %s\n", buffer_copy);
 
     // Parse the incoming data
-    char *token;
-    token = strtok(buffer, ",");
+    char *token = strtok(buffer, ",");
+    if (token == NULL) {
+        printf("Invalid buffer format\n");
+        free(buffer_copy);
+        close(new_socket);
+        return NULL;
+    }
 
-    int call_type = atoi(token);  // Get the call type numeric value
+    if (strcmp(token, "terminate") == 0) {
+        // Terminate logic
+        terminate_processes();
 
-    // Allocate memory for buffer and copy data
-   
+        free(buffer_copy);
+        close(new_socket);
+        return NULL;
+    }
+
+    // Existing logic for call types
+    int call_type = atoi(token);
 
     switch (call_type) {
-        case 1:
-            handle_volte(&new_socket, buffer_copy);  // Pass socket and buffer
-            break;
-        case 2:
-            handle_sipp(&new_socket, buffer_copy);  // Implement handle_sipp accordingly
-            break;
-        default:
-            printf("Invalid call type\n");
-            free(buffer_copy);
+            case 1:
+                    set_volte_env();
+                    handle_volte(&new_socket, buffer_copy);  // Pass socket and buffer
+
+                    break;
+            case 2:
+                    set_sipp_env();
+                    handle_sipp(&new_socket, buffer_copy);  // Implement handle_sipp accordingly
+                    break;
+            case 3:
+                   // system("sh ../SCRIPTS/RawIriFtp_SIPP.sh &");
+                    set_sipp_env();
+                    printf("Below IRI path");
+                    handle_sipp(&new_socket, buffer_copy);
+                    break;
+            case 4:
+                    set_apdh_env();
+                    handle_apdh(&new_socket, buffer_copy);  // Implement handle_sipp accordingly
+
+                    break;
+            default:
+                    printf("Invalid call type\n");
+                    free(buffer_copy);
     }
 
     close(new_socket);
