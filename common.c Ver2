@@ -1,0 +1,162 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include "common.h"
+#define PORT 26401
+char pid_buffer[BUFFER_SIZE];
+int setup_socket() {
+    int server_fd;
+    int opt = 1;
+    struct sockaddr_in address;
+
+    // Create socket file descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("socket failed");
+        return -1;
+    }
+
+    // Forcefully attaching socket to the port 8080
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR , &opt, sizeof(opt))) {
+        perror("setsockopt");
+        close(server_fd);
+        return -1;
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
+
+    // Bind the socket to the network address and port
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        perror("bind failed");
+        close(server_fd);
+        return -1;
+    }
+
+    // Start listening for incoming connections
+    if (listen(server_fd, 3) < 0) {
+        perror("listen");
+        close(server_fd);
+        return -1;
+    }
+
+    return server_fd;
+}
+int fetch_pid(char *process) {
+    char path[BUFFER_SIZE];
+    snprintf(path, BUFFER_SIZE, "ps -ef | grep \"./%s\" | grep -v \"grep\" | grep -v \"vim\" | grep -v \"vi\" | awk '{ print $2 }'", process);
+
+    FILE *fp = popen(path, "r");
+    if (fp == NULL) {
+        perror("popen");
+        return -1;
+    }
+
+    if (fgets(pid_buffer, sizeof(pid_buffer), fp) != NULL) {
+        printf("Fetched PID: %s\n", pid_buffer);
+        pclose(fp);
+        return atoi(pid_buffer);
+    }
+
+    pclose(fp);
+    return -1;
+}
+void set_env_variables(char *tag, char *value){
+if (setenv(tag,value,1)!=0){
+        printf("Env Failed for %s",tag);
+//      return -1;
+}
+else
+printf("env done %s\n ",tag);
+//       return 1;
+
+}
+///////////////////////////////////////////////////////////////
+void set_sipp_env()
+{
+int sts;
+printf("setting  the global env for common process for now..\n");
+
+char *db_server;
+char *db_user_name;
+char *db_passwd;
+char *db_name;
+
+db_server="tislbpi8.ccsrm.lab.in";
+db_user_name="cmsdb";
+db_passwd="d315b197a38456342699c21219f000dctislbpi8.ccsrm.lab.in";
+db_name="ISFDB";
+ if (setenv("DB_SERVER_ADDR", db_server, 1) != 0) {
+        perror("setenv failed");
+        //return 1;
+    }
+ if (setenv("DB_USER_NAME", db_user_name, 1) != 0) {
+        perror("setenv failed");
+        //return 1;
+    }
+ if (setenv("DB_PASSWD", db_passwd, 1) != 0) {
+        perror("setenv failed");
+        //return 1;
+    }
+ if (setenv("DB_NAME", db_name, 1) != 0) {
+        perror("setenv failed");
+        //return 1;
+}
+
+set_env_variables("DB_NODE","ISF"  );
+set_env_variables("SELF_ID"," 2" );
+set_env_variables("RMC_ID"," 2" );
+set_env_variables("CMC_ID", "0" );
+set_env_variables("LIS_TYPE"," 2" );
+set_env_variables("SIPP_IRI_DUMP_PATH","/home/cms/LOADGEN/SIPP_LOADGEN/Dump");
+set_env_variables("SIPP_LOADGEN_PATH","/home/cms/LOADGEN/SIPP_LOADGEN/");
+set_env_variables("IRI_ONLY_PATH","/home/cms/LOADGEN/IRI_ONLY");
+
+set_env_variables("LOG_PATH","/home/cms/LOADGEN/SIPP_LOADGEN/");
+
+set_env_variables("LD_LIBRARY_PATH","/home/cms/LOADGEN/test/SIPP_LOADGEN/sipp-1.1rc6_load_set");
+set_env_variables ("MAKE_LOG","/home/cms/LOADGEN/MAKE_LOG");
+set_env_variables ("LG_STANDARD_IRI_FILES","/home/cms/LOADGEN/LG_STANDARD_IRI_FILES/");
+set_env_variables ("LG_DUMP_FILES_PATH","/home/cms/LOADGEN/SIPP_LOADGEN/Dump");
+//set_env_variables()
+//set_env_variables()
+
+
+
+    // Retrieve and print the environment variable to check if it's set correctly
+    char *value = getenv("DB_SERVER_ADDR");
+    if (value != NULL) {
+        printf("DB_SERVER_ADDR is set to: %s\n", value);
+    } else {
+        printf("DB_SERVER_ADDR is not set.\n");
+    }
+system("sh Env_pi.sh");
+wait(&sts);
+
+
+}
+void set_volte_env()
+{
+set_env_variables("LD_LIBRARY_PATH","/105//ISF1.20/isf/SYSLIB:/105//ISF1.20/isf/LIB:/usr/local/lib:/105//ISF1.20/isf/MySQL/lib_64:/105//ISF1.20/isf/SYSLIB/LIB64:/105//ISF1.20/isf/SYSLIB_64:/105//ISF1.20/isf/EXT_LIB/SOLIB64:/105//ISF1.20/isf/EXT_LIB/SOLIB32");
+
+set_env_variables("DB_NODE","ISF"  );
+set_env_variables("LOG_PATH","/103/LOG_PATH_0");
+set_env_variables("DB_SERVER_ADDR","tislbpi8.ccsrm.lab.in");
+set_env_variables("DB_USER_NAME","DB9E2A69382CBBE0EF14E0C7E3E5153BE66858EE85A7EB46");
+set_env_variables("DB_NAME","ISFDB");
+set_env_variables("DB_PASSWD","648E8D60B41EEA9BA382A7CDF642E827BF5064B96B6F4BF8D46A6FD743C5CF6D9CA986A2F50C957582F68666EFD0B92C");
+
+}
+
+void set_apdh_env(){
+
+set_env_variables("LD_LIBRARY_PATH","/105//ISF1.20/isf/SYSLIB:/105//ISF1.20/isf/LIB:/usr/local/lib:/105//ISF1.20/isf/MySQL/lib_64:/105//ISF1.20/isf/SYSLIB/LIB64:/105//ISF1.20/isf/SYSLIB_64:/105//ISF1.20/isf/EXT_LIB/SOLIB64:/105//ISF1.20/isf/EXT_LIB/SOLIB32");
+
+set_env_variables("DB_SERVER_ADDR","tislbpi8.ccsrm.lab.in");
+set_env_variables("DB_NAME","ISFDB");
+set_env_variables("DB_USER_NAME","cmsdb");
+set_env_variables("DB_PASSWD","d315b197a38456342699c21219f000dctislbpi8.ccsrm.lab.in");
+}
+~
