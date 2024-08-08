@@ -1,0 +1,27 @@
+#ifndef COMMON_H
+#define COMMON_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stddef.h>
+#include <pthread.h>
+
+#define BUFFER_SIZE 1024
+#define PORT 26401
+
+extern char pid_buffer[BUFFER_SIZE];
+int setup_socket();
+int fetch_pid(char *process);
+void set_volte_env();
+void set_apdh_env();
+void set_sipp_env();
+void set_env_variables(char *tags,char *value);
+void handle_volte(void *arg, char *buffer);
+void handle_sipp(void *arg, char *buffer);
+void handle_apdh(void *arg, char *buffer);
+#endif
+~
